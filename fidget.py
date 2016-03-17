@@ -11,6 +11,7 @@ _frame = [_frameRect(a, b) for b in range(6) for a in range(40)]
 def getFrameRect(n):
     return _frame[n]
 
+
 class IAnimation():
     def update(self, dt):
         "forward animation given time in miliseconds"
@@ -19,19 +20,21 @@ class IAnimation():
     def reset(self):
         "reset state"
 
+
 class ISingleAnimation(IAnimation):
     def timeLeft(self):
         "time left to finish, <= 0 when finished"
 
 
 class FrameAnimation(ISingleAnimation):
-    def __init__(self, framesRange, frameTime, destPoint):
+    def __init__(self, framesRange, frameTime, destPoint, tilt=0):
         self.frames = framesRange
         self.length = len(self.frames)
         self.fTime  = frameTime
         self.point  = destPoint
         self.count  = 0
         self.time   = 0.0
+        self.tilt   = tilt
 
     def update(self, dt):
         k = min(self.length - self.count - 1, int ((self.time + dt) / self.fTime))
@@ -39,7 +42,7 @@ class FrameAnimation(ISingleAnimation):
         self.count  = self.count + k
 
     def state(self):
-        return [(self.point, self.frames[self.count])]
+        return [(self.point, self.frames[self.count], self.tilt)]
 
     def reset(self):
         self.time, self.count = 0.0, 0
@@ -115,9 +118,18 @@ class Fidget(IAnimation):
         doNothing = FrameAnimation(
                 [31 for i in range(10)], 70, (75, 25))
 
+        wagTail = FrameAnimation(
+                range(80, 159), 35, (79, 76), -0.25)
+
+        bodyShake = FrameAnimation(
+                range(160, 239), 35, (79, 66))
+
         self.animations = [
+                LoopAnimation(wagTail),
                 leftWing, rightWing,
-                LoopAnimation(SequenceAnimation([lookUpward, doNothing, lookForward, doNothing]))]
+                LoopAnimation(bodyShake),
+                LoopAnimation(SequenceAnimation([lookUpward, doNothing, lookForward, doNothing]))
+                ]
 
     def update(self, dt):
         for a in self.animations:

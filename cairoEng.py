@@ -74,17 +74,24 @@ class Screen(gtk.DrawingArea):
             cr.restore()
 
     def drawState(self, cr, state):
-        ((x, y), f) = state
+        ((x, y), f, tilt) = state
         (sx, sy, w, h) = getFrameRect(f)
         surf = self._patt
+
+        mdst = cairo.Matrix(
+               1, 0,
+            tilt, 1,
+               x, y
+        )
+        #cr.translate(x, y)
+        cr.transform(mdst)
+
         m = cairo.Matrix()
-        m.translate(sx - x, sy - y)
+        m.translate(sx, sy)
         surf.set_matrix(m)
         print(f, sx, sy, w, h)
         cr.set_source(surf)
         #print(x, y)
-        cr.translate(x, y)
-        #cr.transform(cairo.Matrix())
         cr.rectangle(0, 0, w, h)
         cr.fill()
 
