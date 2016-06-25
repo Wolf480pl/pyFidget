@@ -1,6 +1,5 @@
 import copy
 
-
 def _frameRect(a, b):
     if b == 1:
         return None
@@ -27,14 +26,15 @@ class ISingleAnimation(IAnimation):
 
 
 class FrameAnimation(ISingleAnimation):
-    def __init__(self, framesRange, frameTime, destPoint, tilt=0):
+    def __init__(self, framesRange, frameTime, destPoint, p1=None, p2=None):
         self.frames = framesRange
         self.length = len(self.frames)
         self.fTime  = frameTime
         self.point  = destPoint
         self.count  = 0
         self.time   = 0.0
-        self.tilt   = tilt
+        self.p1     = p1
+        self.p2     = p2
 
     def update(self, dt):
         k = min(self.length - self.count - 1, int ((self.time + dt) / self.fTime))
@@ -42,7 +42,7 @@ class FrameAnimation(ISingleAnimation):
         self.count  = self.count + k
 
     def state(self):
-        return [(self.point, self.frames[self.count], self.tilt)]
+        return [(self.point, self.frames[self.count], self.p1, self.p2)]
 
     def reset(self):
         self.time, self.count = 0.0, 0
@@ -107,8 +107,8 @@ class ReverseAnimation(ISingleAnimation):
 class Fidget(IAnimation):
     def __init__(self):
 
-        leftWing    = LoopAnimation(FrameAnimation(range(8), 37, (53, 17)))
-        rightWing   = LoopAnimation(FrameAnimation(range(8, 16), 37, (110, 17)))
+        leftWing    = LoopAnimation(FrameAnimation(range(8), 37, (53, 17), (119, 17), (55, 145)))
+        rightWing   = LoopAnimation(FrameAnimation(range(8, 16), 37, (110, 17), (174, 17), (110, 145)))
 
         lookForward = FrameAnimation(
                 range(18, 21) + [21 for i in range(10)] + range(20, 17, -1), 70, (75, 25))
@@ -119,7 +119,7 @@ class Fidget(IAnimation):
                 [31 for i in range(10)], 70, (75, 25))
 
         wagTail = FrameAnimation(
-                range(80, 159), 35, (79, 76), -0.25)
+                range(80, 159), 35, (79 + 1, 77) , (143 + 1, 77), (63 + 1, 138))
 
         bodyShake = FrameAnimation(
                 range(160, 239), 35, (79, 66))
