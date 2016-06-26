@@ -74,7 +74,7 @@ class Screen(gtk.DrawingArea):
         gradient.add_color_stop_rgb(256, 255, 255, 0);
         #print(gradient)
         
-        print(cr.get_matrix())
+        #print(cr.get_matrix())
         cr.transform(cairo.Matrix(1, 0,
                                   -0.4, 1,
                                   0, 0))
@@ -86,12 +86,12 @@ class Screen(gtk.DrawingArea):
         cr.fill()
 
     def draw2(self, cr, width, height):
-        print("draw")
+        #print("draw")
         t = time()
         dt = t - self._time
         self._time = t
         dtmill = int(dt * 1000)
-        print(dtmill)
+        #print(dtmill)
         self._fidget.update(dtmill)
         
         self.clear(cr)
@@ -148,7 +148,7 @@ class Refresher(threading.Thread):
         tick = 1.0 / fps
         while True:
             sleep(tick)
-            print("tick")
+            #print("tick")
             gtk.threads_enter()
             self.window.queue_draw()
             gtk.threads_leave()
