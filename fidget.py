@@ -128,7 +128,7 @@ class Fidget(IAnimation):
         bodyShake = FrameAnimation(
 #                range(160, 239), 35, (79, 66))
 #                range(200, 239) + range(160, 200), 35, (79, 66))
-                shiftedRange(160, 239, 60), 35, (79, 66))
+                shiftedRange(160, 239, 50), 35, (79, 66))
 
         print(wagTail.length)
         print(bodyShake.length)
