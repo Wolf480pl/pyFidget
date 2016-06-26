@@ -164,6 +164,10 @@ def run(Widget):
     widget.show()
     window.add(widget)
     window.set_decorated(False)
+    window.set_skip_taskbar_hint(True)
+    window.set_skip_pager_hint(True)
+    window.set_keep_above(True)
+    window.stick()
 
     colormap = window.get_screen().get_rgba_colormap()
     gtk.widget_set_default_colormap(colormap)
