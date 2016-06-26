@@ -116,14 +116,18 @@ class Fidget(IAnimation):
                 range(25, 21, -1) + [16 for i in range(10)] + range(23, 25), 70, (75, 25))
 
         doNothing = FrameAnimation(
-                [31 for i in range(10)], 70, (75, 25))
+                [31 for i in range(50)], 70, (75, 25))
 
         wagTail = FrameAnimation(
+#                range(80, 159), 35, (79 + 1, 77) , (143 + 1, 77), (71 + 1, 138))
                 range(80, 159), 35, (79 + 1, 77) , (143 + 1, 77), (63 + 1, 138))
 
         bodyShake = FrameAnimation(
-                range(160, 239), 35, (79, 66))
+#                range(160, 239), 35, (79, 66))
+                range(200, 239) + range(160, 200), 35, (79, 66))
 
+        print(wagTail.length)
+        print(bodyShake.length)
         self.animations = [
                 LoopAnimation(wagTail),
                 leftWing, rightWing,
