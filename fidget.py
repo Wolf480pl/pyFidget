@@ -104,6 +104,9 @@ class ReverseAnimation(ISingleAnimation):
     pass
 
 
+def shiftedRange(start, end, shift):
+    return range(start + shift, end) + range(start, start + shift)
+
 class Fidget(IAnimation):
     def __init__(self):
 
@@ -124,7 +127,8 @@ class Fidget(IAnimation):
 
         bodyShake = FrameAnimation(
 #                range(160, 239), 35, (79, 66))
-                range(200, 239) + range(160, 200), 35, (79, 66))
+#                range(200, 239) + range(160, 200), 35, (79, 66))
+                shiftedRange(160, 239, 60), 35, (79, 66))
 
         print(wagTail.length)
         print(bodyShake.length)
