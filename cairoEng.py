@@ -95,6 +95,8 @@ class Screen(gtk.DrawingArea):
         self._fidget.update(dtmill)
         
         self.clear(cr)
+
+        cr.translate(-53, -17)
         
         for state in self._fidget.state():
             cr.save()
@@ -168,6 +170,7 @@ def run(Widget):
     window.set_skip_pager_hint(True)
     window.set_keep_above(True)
     window.stick()
+    window.set_default_size(121, 121)
 
     colormap = window.get_screen().get_rgba_colormap()
     gtk.widget_set_default_colormap(colormap)
