@@ -43,6 +43,7 @@ class Screen(gtk.DrawingArea):
     _time = time()
     _texture = cairo.ImageSurface.create_from_png("fidget-sprites.png")
     _patt = cairo.SurfacePattern(_texture)
+    _bitmap = None
     
     # Handle the expose-event by drawing
     def do_expose_event(self, event):
@@ -96,6 +97,7 @@ class Screen(gtk.DrawingArea):
         
         self.clear(cr)
 
+        cr.save()
         cr.translate(-53, -17)
         
         for state in self._fidget.state():
@@ -104,6 +106,52 @@ class Screen(gtk.DrawingArea):
             self.drawState(cr, state)
             self._patt.set_matrix(mtx)
             cr.restore()
+
+        cr.restore()
+        tgtSurface = cr.get_target()
+        
+        alphaMap = tgtSurface.create_similar(cairo.CONTENT_COLOR_ALPHA, width, height)
+        alphaCr = cairo.Context(alphaMap)
+        
+        alphaPatt = cairo.SurfacePattern(tgtSurface)
+        alphaCr.set_source(alphaPatt)
+        alphaCr.set_operator(cairo.OPERATOR_SOURCE)
+        alphaCr.paint()
+        
+        alphaCr.set_source_rgb(1, 1, 1)
+        alphaCr.set_operator(cairo.OPERATOR_IN)
+        alphaCr.paint()
+        
+        bitmap = gtk.gdk.Pixmap(None, width, height, 1)
+        bmpCr = bitmap.cairo_create()
+        #bmpCr = cr
+        bmpCr.set_source_rgb(0, 0, 0)
+        bmpCr.set_operator(cairo.OPERATOR_CLEAR)
+        bmpCr.paint()
+
+        bmpPatt = cairo.SurfacePattern(alphaMap)
+        bmpCr.set_source(bmpPatt)
+        #bmpCr.set_source_rgb(1.0, 1.0, 1.0)
+        bmpCr.set_operator(cairo.OPERATOR_SOURCE)
+        #bmpCr.rectangle(10, 10, 90, 40)
+        bmpCr.paint()
+        #bmpCr.fill()
+
+        self._bitmap = bitmap
+
+        dbgPatt = cairo.SurfacePattern(bmpCr.get_target())
+        cr.set_source(dbgPatt)
+        cr.set_operator(cairo.OPERATOR_SOURCE)
+        #cr.paint()
+
+        #self.shape_combine_mask(bitmap, 0, 0)
+    
+#    def do_size_allocate(self, *args):
+#        gtk.DrawingArea.do_size_allocate(self, *args)
+#        print("alloc")
+#        if self._bitmap:
+#            self.window.shape_combine_mask(self._bitmap, 0, 0)
+#            print("alloc with bitmap")
 
     def clear(self, cr):
         cr.save()
@@ -153,6 +201,7 @@ class Refresher(threading.Thread):
             #print("tick")
             gtk.threads_enter()
             self.window.queue_draw()
+            self.window.queue_resize()
             gtk.threads_leave()
 
 # GTK mumbo-jumbo to show the widget in a window and quit when it's closed
@@ -161,9 +210,19 @@ def run(Widget):
     gtk.threads_enter()
     
     window = gtk.Window()
-    window.connect("delete-event", gtk.main_quit)
+
     widget = Widget()
     widget.show()
+
+    def on_size_allocate(wind, rect):
+        #print("walloc")
+        if widget._bitmap:
+            window.input_shape_combine_mask(widget._bitmap, 0, 0)
+            #window.reset_shapes()
+            #print("walloc with bitmap")        
+
+    window.connect("delete-event", gtk.main_quit)
+    window.connect("size-allocate", on_size_allocate)
     window.add(widget)
     window.set_decorated(False)
     window.set_skip_taskbar_hint(True)
