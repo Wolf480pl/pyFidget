@@ -87,26 +87,20 @@ class Screen(gtk.DrawingArea):
         gradient = cairo.LinearGradient(0, 0, 128, 0);
         gradient.add_color_stop_rgb(0, 255, 0, 0);
         gradient.add_color_stop_rgb(256, 255, 255, 0);
-        #print(gradient)
         
-        #print(cr.get_matrix())
         cr.transform(cairo.Matrix(1, 0,
                                   -0.4, 1,
                                   0, 0))
         
-        #cr.set_source(cairo.SurfacePattern(surf));
         cr.set_source(gradient)
-        #cr.set_source_rgb(1.0, 1.0, 1.0)
         cr.rectangle(40, 10, width - 80, height - 20)
         cr.fill()
 
     def draw2(self, cr, width, height):
-        #print("draw")
         t = time()
         dt = t - self._time
         self._time = t
         dtmill = int(dt * 1000)
-        #print(dtmill)
         self._fidget.update(dtmill)
         
         self.clear(cr)
@@ -152,21 +146,13 @@ class Screen(gtk.DrawingArea):
         (sx, sy, w, h) = getFrameRect(f)
         surf = self._patt
 
-#        mdst = cairo.Matrix(
-#               1, 0,
-#            tilt, 1,
-#               x, y
-#        )
         mdst = mkMatrix((x, y), p1, p2, (w, h))
-        #cr.translate(x, y)
         cr.transform(mdst)
 
         m = cairo.Matrix()
         m.translate(sx, sy)
         surf.set_matrix(m)
-        #print(f, sx, sy, w, h)
         cr.set_source(surf)
-        #print(x, y)
         cr.rectangle(0, 0, w, h)
         cr.fill()
 
@@ -181,7 +167,6 @@ class Refresher(threading.Thread):
         tick = 1.0 / fps
         while True:
             sleep(tick)
-            #print("tick")
             gtk.threads_enter()
             self.window.queue_draw()
             self.window.queue_resize()
@@ -228,7 +213,6 @@ def run(Widget):
 
 def rgb24to32(data):
     itr = iter(data)
-    #out = bytearray(len(data) / 3 * 4)
     out = bytearray()
     try:
         while True:
@@ -251,9 +235,7 @@ def capt_screen(widget):
     widget.hide()
     pb = pb.get_from_drawable(win, win.get_colormap(), 0, 0, 0, 0, w, h)
     widget.show_all()
-    #return pb
     if (pb != None):
-#        myw, myh = widget.window.get_size()
         myw, myh = 512, 300
         pb = pb.subpixbuf(x, y, myw, myh)
         w, h = myw * 2, myh / 2
@@ -261,10 +243,6 @@ def capt_screen(widget):
         stride = cairo.ImageSurface.format_stride_for_width(format, w)
         im = cairo.ImageSurface.create_for_data(rgb24to32(pb.get_pixels()), format, w, h, stride)
         return im
-    #    im = Image.fromstring('RGB', (w, h), pb.get_pixels())
-    #    im = im.crop((x, y, x + self._w, y + self._h))
-    #    im = im.convert('RGBA') 
-    #    return im #or pb
 
 if __name__ == "__main__":
     run(Screen)

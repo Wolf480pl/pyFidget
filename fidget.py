@@ -130,8 +130,6 @@ class Fidget(IAnimation):
 #                range(200, 239) + range(160, 200), 35, (79, 66))
                 shiftedRange(160, 239, 50), 35, (79, 66))
 
-        print(wagTail.length)
-        print(bodyShake.length)
         self.animations = [
                 LoopAnimation(wagTail),
                 leftWing, rightWing,
