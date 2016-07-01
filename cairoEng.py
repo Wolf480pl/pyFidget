@@ -76,27 +76,9 @@ class Screen(gtk.DrawingArea):
                 event.area.width, event.area.height)
         cr.clip()
 
-        self.draw2(cr, *self.window.get_size())
+        self.draw(cr, *self.window.get_size())
 
     def draw(self, cr, width, height):
-        # Fill the background with gray
-        cr.set_source_rgb(0.5, 0.5, 0.5)
-        cr.rectangle(0, 0, width, height)
-        cr.fill()
-        
-        gradient = cairo.LinearGradient(0, 0, 128, 0);
-        gradient.add_color_stop_rgb(0, 255, 0, 0);
-        gradient.add_color_stop_rgb(256, 255, 255, 0);
-        
-        cr.transform(cairo.Matrix(1, 0,
-                                  -0.4, 1,
-                                  0, 0))
-        
-        cr.set_source(gradient)
-        cr.rectangle(40, 10, width - 80, height - 20)
-        cr.fill()
-
-    def draw2(self, cr, width, height):
         t = time()
         dt = t - self._time
         self._time = t
