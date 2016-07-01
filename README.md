@@ -13,3 +13,7 @@ The coordinates, timings, etc. of the animations in the code are from slow's
 
 The fidget-sprites.png file was copied from [DesktopFidget] and, as far as I know,
 is copyrighted by [Dean Dodrill], the autor of [Dust:AET].
+
+[Dust:AET]: http://www.noogy.com/main.html
+[DesktopFidget]: https://github.com/slow3586/DesktopFidget
+[Dean Dodrill]: http://www.noogy.com/
