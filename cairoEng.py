@@ -34,6 +34,20 @@ def mkMatrix(p0, p1, p2, size):
                         ex2, ey2,
                         x0 , y0 )
 
+def toShapeMap(surface):
+    width = surface.get_width()
+    height = surface.get_height()
+
+    bitmap = gtk.gdk.Pixmap(None, width, height, 1)
+    bmpCr = bitmap.cairo_create()
+
+    patt = cairo.SurfacePattern(surface)
+    bmpCr.set_source(patt)
+    bmpCr.set_operator(cairo.OPERATOR_SOURCE)
+    bmpCr.paint()
+
+    return bmpCr, bitmap
+
 class Screen(gtk.DrawingArea):
 
     # Draw in response to an expose-event
@@ -43,7 +57,7 @@ class Screen(gtk.DrawingArea):
     _time = time()
     _texture = cairo.ImageSurface.create_from_png("fidget-sprites.png")
     _patt = cairo.SurfacePattern(_texture)
-    _bitmap = None
+    _shapemap = None
     
     # Handle the expose-event by drawing
     def do_expose_event(self, event):
@@ -110,48 +124,17 @@ class Screen(gtk.DrawingArea):
         cr.restore()
         tgtSurface = cr.get_target()
         
-        alphaMap = tgtSurface.create_similar(cairo.CONTENT_COLOR_ALPHA, width, height)
-        alphaCr = cairo.Context(alphaMap)
-        
-        alphaPatt = cairo.SurfacePattern(tgtSurface)
-        alphaCr.set_source(alphaPatt)
-        alphaCr.set_operator(cairo.OPERATOR_SOURCE)
-        alphaCr.paint()
-        
-        alphaCr.set_source_rgb(1, 1, 1)
-        alphaCr.set_operator(cairo.OPERATOR_IN)
-        alphaCr.paint()
-        
-        bitmap = gtk.gdk.Pixmap(None, width, height, 1)
-        bmpCr = bitmap.cairo_create()
-        #bmpCr = cr
-        bmpCr.set_source_rgb(0, 0, 0)
-        bmpCr.set_operator(cairo.OPERATOR_CLEAR)
-        bmpCr.paint()
+        bmpCr, shapemap = toShapeMap(tgtSurface)
 
-        bmpPatt = cairo.SurfacePattern(alphaMap)
-        bmpCr.set_source(bmpPatt)
-        #bmpCr.set_source_rgb(1.0, 1.0, 1.0)
-        bmpCr.set_operator(cairo.OPERATOR_SOURCE)
-        #bmpCr.rectangle(10, 10, 90, 40)
-        bmpCr.paint()
-        #bmpCr.fill()
+        self._shapemap = shapemap
 
-        self._bitmap = bitmap
-
-        dbgPatt = cairo.SurfacePattern(bmpCr.get_target())
-        cr.set_source(dbgPatt)
-        cr.set_operator(cairo.OPERATOR_SOURCE)
+        #dbgPatt = cairo.SurfacePattern(bmpCr.get_target())
+        #cr.set_source(dbgPatt)
+        #cr.set_operator(cairo.OPERATOR_SOURCE)
         #cr.paint()
 
-        #self.shape_combine_mask(bitmap, 0, 0)
-    
-#    def do_size_allocate(self, *args):
-#        gtk.DrawingArea.do_size_allocate(self, *args)
-#        print("alloc")
-#        if self._bitmap:
-#            self.window.shape_combine_mask(self._bitmap, 0, 0)
-#            print("alloc with bitmap")
+    def shapemap(self):
+        return self._shapemap
 
     def clear(self, cr):
         cr.save()
@@ -216,8 +199,9 @@ def run(Widget):
 
     def on_size_allocate(wind, rect):
         #print("walloc")
-        if widget._bitmap:
-            window.input_shape_combine_mask(widget._bitmap, 0, 0)
+        shapemap = widget.shapemap()
+        if shapemap:
+            window.input_shape_combine_mask(shapemap, 0, 0)
             #window.reset_shapes()
             #print("walloc with bitmap")        
 
