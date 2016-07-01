@@ -4,6 +4,10 @@ A widget of Fidget from [Dust:AET] flying on top of your desktop.
 
 Written in Python 2, with pygtk and pycairo
 
+## Screenshot
+
+![fidget screenshot](https://raw.githubusercontent.com/Wolf480pl/pyFidget/master/screenshot.png)
+
 ## Usage
 
 You need Python 2 and pygtk.
