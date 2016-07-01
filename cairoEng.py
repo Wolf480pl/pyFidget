@@ -30,13 +30,6 @@ import gtk, gobject, cairo
 from time import time, sleep
 import threading
 
-from fidget import Fidget, getFrameRect
-
-
-def mkFidget():
-    fidget = Fidget()
-    return fidget
-
 def mkMatrix(p0, p1, p2, size):
     w, h = size
     w, h = float(w), float(h)
@@ -77,12 +70,16 @@ class Screen(gtk.DrawingArea):
     # Draw in response to an expose-event
     __gsignals__ = { "expose-event": "override" }
     
-    _fidget = mkFidget()
     _time = time()
-    _texture = cairo.ImageSurface.create_from_png("fidget-sprites.png")
-    _patt = cairo.SurfacePattern(_texture)
     _shapemap = None
-    
+
+    def __init__(self, animation, texture, getFrameRect):
+        gtk.DrawingArea.__init__(self)
+        self._fidget = animation
+        self._texture = cairo.ImageSurface.create_from_png(texture)
+        self._getFrameRect = getFrameRect
+        self._patt = cairo.SurfacePattern(self._texture)
+
     # Handle the expose-event by drawing
     def do_expose_event(self, event):
         if not hasattr(self, 'bg') :
@@ -149,7 +146,7 @@ class Screen(gtk.DrawingArea):
 
     def drawState(self, cr, state):
         ((x, y), f, p1, p2) = state
-        (sx, sy, w, h) = getFrameRect(f)
+        (sx, sy, w, h) = self._getFrameRect(f)
         surf = self._patt
 
         mdst = mkMatrix((x, y), p1, p2, (w, h))
@@ -179,13 +176,13 @@ class Refresher(threading.Thread):
             gtk.threads_leave()
 
 # GTK mumbo-jumbo to show the widget in a window and quit when it's closed
-def run(Widget):
+def run(animation, texture, getFrameRect):
     gtk.threads_init()
     gtk.threads_enter()
     
     window = gtk.Window()
 
-    widget = Widget()
+    widget = Screen(animation, texture, getFrameRect)
     widget.show()
 
     def on_size_allocate(wind, rect):
@@ -250,5 +247,8 @@ def capt_screen(widget):
         im = cairo.ImageSurface.create_for_data(rgb24to32(pb.get_pixels()), format, w, h, stride)
         return im
 
+import fidget
+
 if __name__ == "__main__":
-    run(Screen)
+    print("This way of starting Fidget is deprecated. Please run cairoFidget.py instead.")
+    run(fidget.Fidget(), "fidget-sprites.png", fidget.getFrameRect)

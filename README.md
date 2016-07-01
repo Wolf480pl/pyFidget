@@ -2,7 +2,9 @@
 
 A widget of Fidget from [Dust:AET] flying on top of your desktop.
 
-Written in Python 2, with pygtk and pycairo
+Written in Python 2, with pygtk and pycairo.
+
+Designed so that it's easy to adapt for other animations and add support for other graphic libraries.
 
 ## Screenshot
 
@@ -12,7 +14,7 @@ Written in Python 2, with pygtk and pycairo
 
 You need Python 2 and pygtk.
 
-Simply run the `cairoEng.py` file.
+Simply run the `cairoFidget.py` file.
 
 This has ben only tested on Linux.
 
