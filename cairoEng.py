@@ -73,12 +73,13 @@ class Screen(gtk.DrawingArea):
     _time = time()
     _shapemap = None
 
-    def __init__(self, animation, texture, getFrameRect):
+    def __init__(self, animation, texture, getFrameRect, offset):
         gtk.DrawingArea.__init__(self)
         self._fidget = animation
         self._texture = cairo.ImageSurface.create_from_png(texture)
         self._getFrameRect = getFrameRect
         self._patt = cairo.SurfacePattern(self._texture)
+        self._offset = offset
 
     # Handle the expose-event by drawing
     def do_expose_event(self, event):
@@ -109,8 +110,12 @@ class Screen(gtk.DrawingArea):
         self.clear(cr)
 
         cr.save()
-        cr.translate(-53, -17)
-        
+        cr.translate(*self._offset)
+
+        if hasattr(self._fidget, 'transforms'):
+            for mtx in self._fidget.transforms():
+                cr.transform(cairo.Matrix(*mtx))
+
         for state in self._fidget.state():
             cr.save()
             mtx = self._patt.get_matrix()
@@ -176,13 +181,13 @@ class Refresher(threading.Thread):
             gtk.threads_leave()
 
 # GTK mumbo-jumbo to show the widget in a window and quit when it's closed
-def run(animation, texture, getFrameRect):
+def run(animation, texture, getFrameRect, size=(200, 200), offset=(0, 0)):
     gtk.threads_init()
     gtk.threads_enter()
     
     window = gtk.Window()
 
-    widget = Screen(animation, texture, getFrameRect)
+    widget = Screen(animation, texture, getFrameRect, offset)
     widget.show()
 
     def on_size_allocate(wind, rect):
@@ -201,11 +206,11 @@ def run(animation, texture, getFrameRect):
     window.set_skip_pager_hint(True)
     window.set_keep_above(True)
     window.stick()
-    window.set_default_size(121, 121)
+    window.set_default_size(*size)
 
     colormap = window.get_screen().get_rgba_colormap()
     gtk.widget_set_default_colormap(colormap)
-        
+
     window.present()
     refresher = Refresher(window)
     refresher.start()
@@ -251,4 +256,4 @@ import fidget
 
 if __name__ == "__main__":
     print("This way of starting Fidget is deprecated. Please run cairoFidget.py instead.")
-    run(fidget.Fidget(), "fidget-sprites.png", fidget.getFrameRect)
+    run(fidget.Fidget(), "fidget-sprites.png", fidget.getFrameRect, (121, 121), (-53, -17))

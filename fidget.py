@@ -23,6 +23,7 @@
 # THE SOFTWARE.
 ##
 
+import math
 from animation import *
 
 def _frameRect(a, b):
@@ -36,7 +37,7 @@ def getFrameRect(n):
     return _frame[n]
 
 
-class Fidget(IAnimation):
+class Fidget(ITransformingAnimation):
     def __init__(self):
 
         leftWing    = LoopAnimation(FrameAnimation(range(8), 37, (53, 17), (119, 17), (55, 145)))
@@ -66,13 +67,38 @@ class Fidget(IAnimation):
                 LoopAnimation(SequenceAnimation([lookUpward, doNothing, lookForward, doNothing]))
                 ]
 
+        yPeriod = 300 * 25
+        def yFloatFun(t):
+            t1 = t * math.pi * 2 / yPeriod
+            return translation(0, 15 * math.cos(t1))
+
+        yFloat = TimeFunTransformer(yFloatFun, yPeriod)
+
+        xPeriod = 500 * 25
+        def xFloatFun(t):
+            t1 = t * math.pi * 2 / xPeriod
+            return translation(20 * math.cos(t1), 0)
+
+        xFloat = TimeFunTransformer(xFloatFun, xPeriod)
+
+        self.transformers = [yFloat, xFloat]
+
     def update(self, dt):
         for a in self.animations:
             a.update(dt)
 
+        for t in self.transformers:
+            t.update(dt)
+
     def state(self):
         return [frame for a in self.animations for frame in a.state()]
+
+    def transforms(self):
+        return [trans for t in self.transformers for trans in t.transforms()]
 
     def reset(self):
         for a in self.animations:
             a.reset()
+
+        for t in self.transformers:
+            t.reset()

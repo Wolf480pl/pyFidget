@@ -28,4 +28,4 @@ import fidget
 import cairoEng
 
 if __name__ == "__main__":
-    cairoEng.run(fidget.Fidget(), "fidget-sprites.png", fidget.getFrameRect)
+    cairoEng.run(fidget.Fidget(), "fidget-sprites.png", fidget.getFrameRect, (171, 151), (-28, -2))

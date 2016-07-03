@@ -118,6 +118,57 @@ class LoopAnimation(IAnimation):
 class ReverseAnimation(ISingleAnimation):
     pass
 
+class ITransformer:
+    def update(self, dt):
+        """forwards the transformation given time in miliseconds"""
+
+    def transforms(self):
+        """
+        transformation matrices to apply to the whole animation
+        (xx, xy,
+         yx, yy,
+         x0, y0)
+        yeah, I know it looks transposed
+        """
+    def reset(self):
+        "resets the transformation"
+
+def identity():
+    return (1, 0,
+            0, 1,
+            0, 0)
+
+def translation(x, y):
+    return (1, 0,
+            0, 1,
+            x, y)
+
+class TimeFunTransformer:
+    def __init__(self, function, period=None):
+        self._function = function
+        self._time = 0.0
+        self._period = period
+
+    def reset(self):
+        self._time = 0.0
+
+    def update(self, dt):
+        self._time += dt
+        if (self._period):
+            self._time = self._time % self._period
+
+    def transforms(self):
+        return [self._function(self._time)]
+
+class ITransformingAnimation(IAnimation):
+    def transforms(self):
+        """
+        transformation matrices to apply to the whole animation
+        (xx, xy,
+         yx, yy,
+         x0, y0)
+        yeah, I know it looks transposed
+        """
 
 def shiftedRange(start, end, shift):
     return range(start + shift, end) + range(start, start + shift)
