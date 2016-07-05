@@ -9,13 +9,17 @@ import threading
 from fidget import Fidget, getFrameRect
 
 
+def mkFidget():
+    fidget = Fidget()
+    return fidget
+
 class Screen(gtk.DrawingArea):
 
     # Draw in response to an expose-event
     __gsignals__ = { "expose-event": "override" }
     
-    _fidget = Fidget()
-    _time = 0
+    _fidget = mkFidget()
+    _time = time()
     _texture = cairo.ImageSurface.create_from_png("fidget-sprites.png")
     _patt = cairo.SurfacePattern(_texture)
     
@@ -58,7 +62,9 @@ class Screen(gtk.DrawingArea):
         t = time()
         dt = t - self._time
         self._time = t
-        self._fidget.update(dt)
+        dtmill = int(dt * 1000)
+        print(dtmill)
+        self._fidget.update(dtmill)
         
         for state in self._fidget.state():
             cr.save()
@@ -72,10 +78,12 @@ class Screen(gtk.DrawingArea):
         (sx, sy, w, h) = getFrameRect(f)
         surf = self._patt
         m = cairo.Matrix()
-        m.translate(sx, sy)
+        m.translate(sx - x, sy - y)
         surf.set_matrix(m)
+        print(f, sx, sy, w, h)
         cr.set_source(surf)
-        #cr.translate(x, y)
+        #print(x, y)
+        cr.translate(x, y)
         #cr.transform(cairo.Matrix())
         cr.rectangle(0, 0, w, h)
         cr.fill()
@@ -83,15 +91,18 @@ class Screen(gtk.DrawingArea):
 class Refresher(threading.Thread):
     def __init__(self, window):
         threading.Thread.__init__(self)
+        self.setDaemon(True)
         self.window = window
     
     def run(self):
-        fps = 30
+        fps = 60
         tick = 1.0 / fps
         while True:
             sleep(tick)
             print("tick")
+            gtk.threads_enter()
             self.window.queue_draw()
+            gtk.threads_leave()
 
 # GTK mumbo-jumbo to show the widget in a window and quit when it's closed
 def run(Widget):
@@ -104,10 +115,12 @@ def run(Widget):
     widget.show()
     window.add(widget)
     window.present()
-    Refresher(window).start()
-    gtk.main()
-    
-    gtk.threads_leave()
+    refresher = Refresher(window)
+    refresher.start()
+    try:
+        gtk.main()
+    finally:
+        gtk.threads_leave()
 
 if __name__ == "__main__":
     run(Screen)
