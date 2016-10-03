@@ -105,6 +105,13 @@ class Screen(gtk.DrawingArea):
         dt = t - self._time
         self._time = t
         dtmill = int(dt * 1000)
+        if (dtmill > 20000):
+            # We're realy late, waaay behind the schedule
+            # There's no way we're gonna catch up
+            # But guess what? It doesn't matter!
+            # We can just set dt to something low, and the next frame will be correct
+            print("warning: skipping a very long tick: %d" % dtmill)
+            dtmill = 1
         self._fidget.update(dtmill)
         
         self.clear(cr)
