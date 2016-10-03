@@ -28,7 +28,7 @@ class IAnimation():
         """forwards the animation given time in miliseconds"""
     def state(self):
         """
-        returns what should be drawn, (destPoint, frameNumber, p1, p2)
+        returns a list of what should be drawn, [(destPoint, frameNumber, p1, p2), ...]
         p1, p2 are optional points that, together with destPoint, make a parallelogram,
         to which the frame will be stretched (scaled and/or tilted)
         """
@@ -168,6 +168,13 @@ class ITransformingAnimation(IAnimation):
          yx, yy,
          x0, y0)
         yeah, I know it looks transposed
+        """
+
+class IAttachableAnimation(IAnimation):
+    def attachment(self, name):
+        """
+        coordinates of the named attachment point
+        (x, y)
         """
 
 def shiftedRange(start, end, shift):

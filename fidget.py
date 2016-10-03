@@ -37,7 +37,7 @@ def getFrameRect(n):
     return _frame[n]
 
 
-class Fidget(ITransformingAnimation):
+class Fidget(ITransformingAnimation,IAttachableAnimation):
     def __init__(self):
 
         leftWing    = LoopAnimation(FrameAnimation(range(8), 37, (53, 17), (119, 17), (55, 145)))
@@ -95,6 +95,11 @@ class Fidget(ITransformingAnimation):
 
     def transforms(self):
         return [trans for t in self.transformers for trans in t.transforms()]
+
+    def attachment(self, name):
+        return {
+            "mouth": (110, 85)
+        }.get(name, None)
 
     def reset(self):
         for a in self.animations:

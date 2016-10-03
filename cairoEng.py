@@ -26,9 +26,10 @@
 
 import pygtk
 pygtk.require('2.0')
-import gtk, gobject, cairo
+import gtk, gobject, cairo, pango, pangocairo
 from time import time, sleep
 import threading
+import math
 
 def mkMatrix(p0, p1, p2, size):
     w, h = size
@@ -40,16 +41,24 @@ def mkMatrix(p0, p1, p2, size):
         ex1, ey1 = dx1 / w, dy1 / w
     else:
         ex1, ey1 = 1, 0
-    if p2:    
+    if p2:
         x2, y2 = p2
         dx2, dy2 = x2 - x0, y2 - y0
         ex2, ey2 = dx2 / h, dy2 / h
     else:
         ex2, ey2 = 0, 1
-    
+
     return cairo.Matrix(ex1, ey1,
                         ex2, ey2,
                         x0 , y0 )
+
+def transformPoint(point, mtx):
+    ex1, ey1, ex2, ey2, x0, y0 = mtx
+    i1, i2 = point
+    return (
+        i1 * ex1 + i2 * ex2 + x0,
+        i1 * ey1 + i2 * ey2 + y0
+    )
 
 def toShapeMap(surface):
     width = surface.get_width()
@@ -69,9 +78,11 @@ class Screen(gtk.DrawingArea):
 
     # Draw in response to an expose-event
     __gsignals__ = { "expose-event": "override" }
-    
+
     _time = time()
     _shapemap = None
+    _bubbletext = None
+    _bubbletime = 0
 
     def __init__(self, animation, texture, getFrameRect, offset):
         gtk.DrawingArea.__init__(self)
@@ -81,6 +92,11 @@ class Screen(gtk.DrawingArea):
         self._patt = cairo.SurfacePattern(self._texture)
         self._offset = offset
 
+    def showBubble(self, text, time=5):
+        self._bubbletext = text
+        self._bubbletime = time
+        print(text, time)
+
     # Handle the expose-event by drawing
     def do_expose_event(self, event):
         if not hasattr(self, 'bg') :
@@ -89,7 +105,7 @@ class Screen(gtk.DrawingArea):
                 self.bg = None
             else:
                 self.bg = capt_screen(self)
-        
+
         # Create the cairo context
         cr = self.window.cairo_create()
 
@@ -113,7 +129,7 @@ class Screen(gtk.DrawingArea):
             print("warning: skipping a very long tick: %d" % dtmill)
             dtmill = 1
         self._fidget.update(dtmill)
-        
+
         self.clear(cr)
 
         cr.save()
@@ -131,8 +147,15 @@ class Screen(gtk.DrawingArea):
             cr.restore()
 
         cr.restore()
+        if self._bubbletext:
+            self.drawBubble(cr, self._bubbletext)
+            self._bubbletime -= dt;
+            if (self._bubbletime <= 0):
+                self._bubbletime = 0
+                self._bubbletext = None
+
         tgtSurface = cr.get_target()
-        
+
         bmpCr, shapemap = toShapeMap(tgtSurface)
 
         self._shapemap = shapemap
@@ -141,6 +164,70 @@ class Screen(gtk.DrawingArea):
         #cr.set_source(dbgPatt)
         #cr.set_operator(cairo.OPERATOR_SOURCE)
         #cr.paint()
+
+    def drawBubble(self, cr, text):
+        cr.save()
+
+        pgctx = pangocairo.CairoContext(cr)
+        pgctx.set_antialias(cairo.ANTIALIAS_SUBPIXEL)
+        layout = pgctx.create_layout()
+        font = pango.FontDescription("Sans 10")
+        layout.set_font_description(font)
+
+        layout.set_text(text)
+        extents, _ = layout.get_pixel_extents()
+        x_bear, y_bear, w, h = extents
+        radius = 10
+        bubtail_pad = 5
+        bubtail_width = 10
+        bezi_x = 0
+        bezi_y = 30
+
+        mouth_x, mouth_y = 0, 0
+        mouth = self._fidget.attachment("mouth")
+        if mouth:
+            mouth = reduce(transformPoint, self._fidget.transforms(), mouth)
+            mouth_x, mouth_y = mouth
+
+        cr.translate(150.5 + radius, 0.5 + radius)
+        mouth_x -= 150.5 + radius
+        mouth_y -= 0.5 + radius
+
+        cr.set_source_rgba(1, .5, 0, 1)
+        cr.set_line_width(1)
+        cr.move_to(0, -radius)
+        cr.rel_line_to(w, 0)
+        cr.arc(w, 0, radius, -math.pi / 2, 0)
+        cr.rel_line_to(0, h)
+        cr.arc(w, h, radius, 0, math.pi / 2)
+
+        if not mouth:
+            cr.rel_line_to(-w, 0)
+        else:
+            cr.rel_line_to(-w + bubtail_pad + bubtail_width, 0)
+            curx, cury = cr.get_current_point()
+            cr.curve_to(curx + bezi_x, cury + bezi_y, mouth_x, mouth_y, mouth_x, mouth_y)
+            curx -= bubtail_width
+            cr.curve_to(mouth_x, mouth_y, curx + bezi_x, cury + bezi_y, curx, cury)
+            cr.rel_line_to(-bubtail_pad, 0)
+
+        cr.arc(0, h, radius, math.pi / 2, math.pi)
+        cr.rel_line_to(0, -h)
+        cr.arc(0, 0, radius, -math.pi, - math.pi / 2)
+        cr.stroke_preserve()
+        cr.set_source_rgba(0, 0, 0, 0.5)
+        cr.fill()
+
+        cr.set_source_rgba(1, 1, 1, 1)
+        cr.translate(-x_bear, -y_bear)
+
+        pgctx.update_layout(layout)
+        pgctx.show_layout(layout)
+
+        #cr.move_to(0, 0)
+        #cr.show_text(text)
+
+        cr.restore()
 
     def shapemap(self):
         return self._shapemap
@@ -176,7 +263,7 @@ class Refresher(threading.Thread):
         threading.Thread.__init__(self)
         self.setDaemon(True)
         self.window = window
-    
+
     def run(self):
         fps = 60
         tick = 1.0 / fps
@@ -187,11 +274,36 @@ class Refresher(threading.Thread):
             self.window.queue_resize()
             gtk.threads_leave()
 
+class BubbleReader(threading.Thread):
+    def __init__(self, widget):
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
+        self.widget = widget
+        self.path = "./fidget.sock"
+
+    def run(self):
+        import sys, os, socket
+        try:
+            os.unlink(self.path)
+        except:
+            if (os.path.exists(self.path)):
+                raise
+
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.bind(self.path)
+        sock.listen(1)
+
+        while True:
+            conn, addr = sock.accept()
+            for line in conn.makefile():
+                self.widget.showBubble(line[:-1])
+
+
 # GTK mumbo-jumbo to show the widget in a window and quit when it's closed
 def run(animation, texture, getFrameRect, size=(200, 200), offset=(0, 0)):
     gtk.threads_init()
     gtk.threads_enter()
-    
+
     window = gtk.Window()
 
     widget = Screen(animation, texture, getFrameRect, offset)
@@ -203,7 +315,7 @@ def run(animation, texture, getFrameRect, size=(200, 200), offset=(0, 0)):
         if shapemap:
             window.input_shape_combine_mask(shapemap, 0, 0)
             #window.reset_shapes()
-            #print("walloc with bitmap")        
+            #print("walloc with bitmap")
 
     window.connect("delete-event", gtk.main_quit)
     window.connect("size-allocate", on_size_allocate)
@@ -221,6 +333,8 @@ def run(animation, texture, getFrameRect, size=(200, 200), offset=(0, 0)):
     window.present()
     refresher = Refresher(window)
     refresher.start()
+    reader = BubbleReader(widget)
+    reader.start()
     try:
         gtk.main()
     finally:
