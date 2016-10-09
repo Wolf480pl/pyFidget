@@ -28,6 +28,7 @@ import pygtk
 pygtk.require('2.0')
 import gtk, gobject, cairo, pango, pangocairo
 from time import time, sleep
+import Queue
 import threading
 import math
 
@@ -81,8 +82,8 @@ class Screen(gtk.DrawingArea):
 
     _time = time()
     _shapemap = None
-    _bubbletext = None
-    _bubbletime = 0
+    _bubqueue = Queue.Queue()
+    _curbubble = None
 
     def __init__(self, animation, texture, getFrameRect, config):
         gtk.DrawingArea.__init__(self)
@@ -92,10 +93,11 @@ class Screen(gtk.DrawingArea):
         self._patt = cairo.SurfacePattern(self._texture)
         self._config = config
 
-    def showBubble(self, text, time=5):
-        self._bubbletext = text
-        self._bubbletime = time
-        print(text, time)
+    def showBubble(self, text, duration=None):
+        if not duration:
+            duration = self._config.get("bubble-duration", 5)
+        self._bubqueue.put((text, time() + duration))
+        print(text, duration)
 
     # Handle the expose-event by drawing
     def do_expose_event(self, event):
@@ -148,12 +150,22 @@ class Screen(gtk.DrawingArea):
             cr.restore()
 
         cr.restore()
-        if self._bubbletext:
-            self.drawBubble(cr, self._bubbletext)
-            self._bubbletime -= dt;
-            if (self._bubbletime <= 0):
-                self._bubbletime = 0
-                self._bubbletext = None
+
+        try:
+            nextbubble = self._bubqueue.get(False)
+            nexttext, _ = nextbubble
+            if len(nexttext) > 0:
+                self._curbubble = nextbubble
+            else:
+                self._curbubble = None
+        except Queue.Empty:
+            pass
+
+        if self._curbubble:
+            bubbletext, bubbletime = self._curbubble
+            self.drawBubble(cr, bubbletext)
+            if (bubbletime <= time()):
+                self._curbubble = None
 
         tgtSurface = cr.get_target()
 
@@ -175,9 +187,6 @@ class Screen(gtk.DrawingArea):
         font = pango.FontDescription("Sans 10")
         layout.set_font_description(font)
 
-        layout.set_text(text)
-        extents, _ = layout.get_pixel_extents()
-        x_bear, y_bear, w, h = extents
         radius = self._config.get("radius", 10)
         bubpos_x, bubpos_y = self._config.get("bubble-pos", (150.5, 0.5))
         bubborder_color = self._config.get("bubble-border-color", (1, .5, 0, 1))
@@ -186,6 +195,14 @@ class Screen(gtk.DrawingArea):
         bubtail_pad = self._config.get("bubble-tail-pad", 5)
         bubtail_width = self._config.get("bubble-tail-width", 10)
         bezi_x, bezi_y = self._config.get("bubble-bezier", (0, 30))
+
+        text = unicode(text)
+
+        layout.set_text(text)
+        extents, _ = layout.get_pixel_extents()
+        x_bear, y_bear, w, h = extents
+
+        w = max(w, bubtail_pad + bubtail_width)
 
         mouth_x, mouth_y = 0, 0
         mouth = self._fidget.attachment("mouth")
@@ -278,12 +295,12 @@ class Refresher(threading.Thread):
             self.window.queue_resize()
             gtk.threads_leave()
 
-class BubbleReader(threading.Thread):
-    def __init__(self, widget):
+class BubbleListener(threading.Thread):
+    def __init__(self, widget, config):
         threading.Thread.__init__(self)
         self.setDaemon(True)
         self.widget = widget
-        self.path = "./fidget.sock"
+        self.path = config.get("socket-path", "./fidget.sock")
 
     def run(self):
         import sys, os, socket
@@ -299,8 +316,23 @@ class BubbleReader(threading.Thread):
 
         while True:
             conn, addr = sock.accept()
-            for line in conn.makefile():
-                self.widget.showBubble(line[:-1])
+            BubbleReader(self.widget, conn).start()
+
+class BubbleReader(threading.Thread):
+    def __init__(self, widget, conn):
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
+        self.widget = widget
+        self.conn = conn
+
+    def run(self):
+        buf = ""
+        for line in self.conn.makefile():
+            if len(line) > 1:
+                buf += line
+            else:
+                self.widget.showBubble(buf[:-1])
+                buf = ""
 
 
 # GTK mumbo-jumbo to show the widget in a window and quit when it's closed
@@ -340,8 +372,8 @@ def run(animation, texture, getFrameRect, config):
     window.present()
     refresher = Refresher(window)
     refresher.start()
-    reader = BubbleReader(widget)
-    reader.start()
+    listener = BubbleListener(widget, config)
+    listener.start()
     try:
         gtk.main()
     finally:
