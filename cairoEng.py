@@ -84,13 +84,13 @@ class Screen(gtk.DrawingArea):
     _bubbletext = None
     _bubbletime = 0
 
-    def __init__(self, animation, texture, getFrameRect, offset):
+    def __init__(self, animation, texture, getFrameRect, config):
         gtk.DrawingArea.__init__(self)
         self._fidget = animation
         self._texture = cairo.ImageSurface.create_from_png(texture)
         self._getFrameRect = getFrameRect
         self._patt = cairo.SurfacePattern(self._texture)
-        self._offset = offset
+        self._config = config
 
     def showBubble(self, text, time=5):
         self._bubbletext = text
@@ -133,7 +133,8 @@ class Screen(gtk.DrawingArea):
         self.clear(cr)
 
         cr.save()
-        cr.translate(*self._offset)
+        offset = self._config.get("offset", (0, 0))
+        cr.translate(*offset)
 
         if hasattr(self._fidget, 'transforms'):
             for mtx in self._fidget.transforms():
@@ -177,11 +178,14 @@ class Screen(gtk.DrawingArea):
         layout.set_text(text)
         extents, _ = layout.get_pixel_extents()
         x_bear, y_bear, w, h = extents
-        radius = 10
-        bubtail_pad = 5
-        bubtail_width = 10
-        bezi_x = 0
-        bezi_y = 30
+        radius = self._config.get("radius", 10)
+        bubpos_x, bubpos_y = self._config.get("bubble-pos", (150.5, 0.5))
+        bubborder_color = self._config.get("bubble-border-color", (1, .5, 0, 1))
+        bubbg_color = self._config.get("bubble-bg-color", (0, 0, 0, 0.5))
+        text_color = self._config.get("bubble-text-color", (1, 1, 1, 1))
+        bubtail_pad = self._config.get("bubble-tail-pad", 5)
+        bubtail_width = self._config.get("bubble-tail-width", 10)
+        bezi_x, bezi_y = self._config.get("bubble-bezier", (0, 30))
 
         mouth_x, mouth_y = 0, 0
         mouth = self._fidget.attachment("mouth")
@@ -189,11 +193,11 @@ class Screen(gtk.DrawingArea):
             mouth = reduce(transformPoint, self._fidget.transforms(), mouth)
             mouth_x, mouth_y = mouth
 
-        cr.translate(150.5 + radius, 0.5 + radius)
-        mouth_x -= 150.5 + radius
-        mouth_y -= 0.5 + radius
+        cr.translate(bubpos_x + radius, bubpos_y + radius)
+        mouth_x -= bubpos_x + radius
+        mouth_y -= bubpos_y + radius
 
-        cr.set_source_rgba(1, .5, 0, 1)
+        cr.set_source_rgba(*bubborder_color)
         cr.set_line_width(1)
         cr.move_to(0, -radius)
         cr.rel_line_to(w, 0)
@@ -215,10 +219,10 @@ class Screen(gtk.DrawingArea):
         cr.rel_line_to(0, -h)
         cr.arc(0, 0, radius, -math.pi, - math.pi / 2)
         cr.stroke_preserve()
-        cr.set_source_rgba(0, 0, 0, 0.5)
+        cr.set_source_rgba(*bubbg_color)
         cr.fill()
 
-        cr.set_source_rgba(1, 1, 1, 1)
+        cr.set_source_rgba(*text_color)
         cr.translate(-x_bear, -y_bear)
 
         pgctx.update_layout(layout)
@@ -300,13 +304,16 @@ class BubbleReader(threading.Thread):
 
 
 # GTK mumbo-jumbo to show the widget in a window and quit when it's closed
-def run(animation, texture, getFrameRect, size=(200, 200), offset=(0, 0)):
+def run(animation, texture, getFrameRect, config):
+    #size=(200, 200), offset=(0, 0)
+    size = config.get("size", (200, 200))
+    
     gtk.threads_init()
     gtk.threads_enter()
 
     window = gtk.Window()
 
-    widget = Screen(animation, texture, getFrameRect, offset)
+    widget = Screen(animation, texture, getFrameRect, config)
     widget.show()
 
     def on_size_allocate(wind, rect):
@@ -377,4 +384,4 @@ import fidget
 
 if __name__ == "__main__":
     print("This way of starting Fidget is deprecated. Please run cairoFidget.py instead.")
-    run(fidget.Fidget(), "fidget-sprites.png", fidget.getFrameRect, (121, 121), (-53, -17))
+    run(fidget.Fidget(), "fidget-sprites.png", fidget.getFrameRect, {"size": (121, 121), "offset": (-53, -17)})
